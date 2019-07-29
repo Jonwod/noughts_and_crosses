@@ -1,0 +1,10 @@
+[package]
+name = "noughts_and_crosses"
+version = "0.1.0"
+authors = ["Jon <jonathan.m.wood95@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+rand = "*"
