@@ -1,13 +1,25 @@
 use std::io;
 use rand::Rng;
 use std::fmt;
-use std::cmp;
+use std::ops::Add;
 
 
 #[derive(Debug, Copy, Clone)]
 struct Vec2<T> {
     x: T,
     y: T,
+}
+
+
+impl<T: Add<Output = T>> Add for Vec2<T> {
+    type Output = Self;
+
+    fn add(self, other: Self) -> Self::Output {
+        Self {
+            x: self.x + other.x,
+            y: self.y + other.y,
+        }
+    }
 }
 
 
@@ -162,7 +174,7 @@ fn player_turn(board: &[[CellValue; 3]; 3]) -> Vec2<u8> {
 
 
 // In this first iteration, player is always crosses
-fn ai_turn(board: &[[CellValue; 3]; 3], token_type: CellValue) -> Vec2<u8> {
+fn ai_turn(board: &[[CellValue; 3]; 3], _token_type: CellValue) -> Vec2<u8> {
     let mut valid_moves: Vec<Vec2<u8>> = Vec::new();
     for u in 0..3 {
         for v in 0..3 {
@@ -194,33 +206,20 @@ fn ai_token(player_token: &CellValue) -> CellValue {
 
 // Returns true if there is a line of the specified CellValue
 // type between the specified indices.
-// TODO: Can probably make much more concise by just checking if start and end are equal and also the midpoint
 fn is_line(board: &[[CellValue; 3]; 3], start: Vec2<u8>, end: Vec2<u8>) -> bool {
-    let cell_type = board[start.x as usize][start.y as usize];
-    let x_len = (start.x as i16 - end.x as i16).abs();
-    let y_len = (start.y as i16 - end.y as i16).abs();
-    let line_len = cmp::max(x_len, y_len) as u16;
+    let start_i = Vec2{x: start.x as usize, y: start.y as usize};
+    let end_i = Vec2{x: end.x as usize, y: end.y as usize};
+    let mid_point_coords = {
+        let sum = start_i + end_i;
+        Vec2{x: sum.x / 2, y: sum.y / 2}
+    };
 
-    if x_len != y_len  &&  cmp::min(x_len, y_len) != 0 {
-        return false;
+    let start_value = board[start_i.x][start_i.y];
+    if start_value == board[end_i.x][end_i.y]  &&  start_value  ==  board[mid_point_coords.x][mid_point_coords.y] {
+        return true;
     }
 
-    if line_len == 0 {
-        return false;   // Just going to say that's not a line...
-    }
-
-    let x_dir = (end.x as i32 - start.x as i32) / line_len as i32;
-    let y_dir = (end.y as i32 - start.y as i32) / line_len as i32;
-
-    for i in 0..(line_len + 1) as i32 {
-        let ix = ( start.x as i32 + i * x_dir ) as usize;
-        let iy = ( start.y as i32 + i * y_dir ) as usize;
-        if board[ix][iy] != cell_type {
-            return false;
-        }
-    }
-
-    true
+    false
 }
 
 
@@ -250,8 +249,8 @@ fn winner(board: &[[CellValue; 3]; 3]) -> CellValue {
 
 
 fn board_full(board: &[[CellValue; 3]; 3]) -> bool {
-    for x in 0..2 {
-        for y in 0..2 {
+    for x in 0..3 {
+        for y in 0..3 {
             if board[x][y] == CellValue::Empty {
                 return false;
             }
@@ -300,6 +299,7 @@ fn main() {
         let ai_move = ai_turn(&board_state, ai_token(&player_token));
         board_state[ai_move.x as usize][ai_move.y as usize] = ai_token(&player_token);
         print_board(&board_state);
+        // TODO: Remove duplication
         let vic = winner(&board_state);
         if vic != CellValue::Empty {
             break vic;
@@ -311,6 +311,7 @@ fn main() {
         let player_move = player_turn(&board_state);
         board_state[player_move.x as usize][player_move.y as usize] = player_token;
         print_board(&board_state);
+        // TODO: Remove duplication
         let vic = winner(&board_state);
         if vic != CellValue::Empty {
             break vic;
