@@ -4,98 +4,8 @@ mod vector2;
 use vector2::Vector2;
 mod board;
 use board::*;
-
-
-fn process_row_input(row_num: char) -> Option<u8> {
-    let as_num = match row_num.to_digit(10) {
-        Some(n) => n,
-        None => return None,
-    };
-
-    if as_num > 0 && as_num <=3 {
-        Some((as_num - 1) as u8)
-    }
-    else {
-        None
-    }
-}
-
-
-fn process_column_input(letter: char) -> Option<u8> {
-    for (i, l) in COLUMN_LETTERS.iter().enumerate() {
-        if letter == *l {
-            return Some(i as u8)
-        }
-    }
-    None
-}
-
-
-fn process_input(input: &String) -> Option<Vector2<u8>> {
-    let cleaned = input.trim().to_uppercase();
-    if cleaned.len() == 2 {
-        let column_in: char = cleaned.chars().nth(0).unwrap();
-        let row_in: char = cleaned.chars().nth(1).unwrap();
-        let mut out_coords = Vector2 {x: 0u8, y: 0u8};
-
-        match process_column_input(column_in) {
-            Some(x) => out_coords.x = x,
-            None => return None
-        }
-
-        match process_row_input(row_in) {
-            Some(y) => out_coords.y = y,
-            None => return None
-        }
-
-        return Some(out_coords)
-    }
-    None
-}
-
-
-// In this first iteration, player is always noughts
-fn player_turn(board: &[[CellValue; 3]; 3]) -> Vector2<u8> {
-    println!("Your turn.");
-
-    return loop {
-        let mut input = String::new();
-        io::stdin().read_line(&mut input).expect("Failed to get input!");
-        match process_input(&input) {
-            Some(coords) => {
-                match board[coords.x as usize][coords.y as usize] {
-                    CellValue::Empty => break coords,
-                    _ => println!("Cell already occupied. Please select another cell."),
-                }
-            }
-            None => {
-                println!("Input format invalid. Please enter in the format 'A1'.");
-            }
-        }
-    }
-}
-
-
-// In this first iteration, player is always crosses
-fn ai_turn(board: &[[CellValue; 3]; 3], _token_type: CellValue) -> Vector2<u8> {
-    let mut valid_moves: Vec<Vector2<u8>> = Vec::new();
-    for u in 0..3 {
-        for v in 0..3 {
-            match board[u][v] {
-                CellValue::Empty => valid_moves.push(Vector2 {x: u as u8, y: v as u8}),
-                _ => (),
-            }
-        }
-    }
-
-    if valid_moves.len() == 0 {
-        panic!("AI being asked to make a move, but there are no valid moves!");
-    }
-
-    let move_index = rand::thread_rng().gen_range(0, valid_moves.len());
-
-    valid_moves[move_index]
-}
+mod player;
+use player::*;
 
 
 // Returns true if there is a line of the specified CellValue
@@ -142,13 +52,15 @@ fn winner(board: &[[CellValue; 3]; 3]) -> CellValue {
 }
 
 
-fn announce_winner(winner: CellValue, is_human: bool) {
-    if is_human {
-        println!("You Win! Thanks for playing!");
-    } else if winner == CellValue::Empty {
-        println!("It's a Draw!");
-    } else {
-        println!("{} wins.", winner.player_name());
+fn announce_winner(winner: Option<&Player>) {
+    match winner {
+        Some(w) => {
+            println!("{} wins.", w.name);
+            if let PlayerType::Human = w.controller {
+                println!("Congratulations!");
+            }
+        },
+        None => println!("It's a draw!"),
     }
 }
 
@@ -163,44 +75,40 @@ fn main() {
 
     let player_token = CellValue::Cross;
 
+    let players = [
+        Player{name: String::from("Player 1"), token: player_token, controller: PlayerType::Human},
+        Player{name: String::from("Computer"), token: player_token.opposite(), controller: PlayerType::AI},
+    ];
+
     print_board(&board_state);
 
-    if rand::thread_rng().gen_range(0, 2) == 0 {
-        println!("You go first!");
-        let player_move = player_turn(&board_state);
-        board_state[player_move.x as usize][player_move.y as usize] = player_token;
-        print_board(&board_state);
-    }
-    else {
-        println!("The AI goes first.");
-    }
+    let mut current_turn = match rand::thread_rng().gen_range(0, 2) == 0 {
+        false =>{
+            println!("You go first!");
+            0 as usize
+        },
+        true => {
+            println!("The AI goes first.");
+            1 as usize
+        },
+    };
 
 
     let victor = loop {
-        let ai_move = ai_turn(&board_state, player_token.opposite());
-        board_state[ai_move.x as usize][ai_move.y as usize] = player_token.opposite();
+        let mov = players[current_turn].decide_move(&board_state);
+
+        board_state[mov.x as usize][mov.y as usize] = players[current_turn].token;
         print_board(&board_state);
-        // TODO: Remove duplication
-        let vic = winner(&board_state);
-        if vic != CellValue::Empty {
-            break vic;
+
+        if winner(&board_state) != CellValue::Empty {
+            break Option::Some(&players[current_turn]);
         }
         else if board_full(&board_state) {
-            break CellValue::Empty;
+            break None;
         }
 
-        let player_move = player_turn(&board_state);
-        board_state[player_move.x as usize][player_move.y as usize] = player_token;
-        print_board(&board_state);
-        // TODO: Remove duplication
-        let vic = winner(&board_state);
-        if vic != CellValue::Empty {
-            break vic;
-        }
-        else if board_full(&board_state) {
-            break CellValue::Empty;
-        }
+        current_turn = if current_turn == 0 { 1 } else { 0 };
     };
 
-    announce_winner(victor, victor == player_token);
+    announce_winner(victor);
 }
