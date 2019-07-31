@@ -1,26 +1,8 @@
 use std::io;
 use rand::Rng;
 use std::fmt;
-use std::ops::Add;
-
-
-#[derive(Debug, Copy, Clone)]
-struct Vec2<T> {
-    x: T,
-    y: T,
-}
-
-
-impl<T: Add<Output = T>> Add for Vec2<T> {
-    type Output = Self;
-
-    fn add(self, other: Self) -> Self::Output {
-        Self {
-            x: self.x + other.x,
-            y: self.y + other.y,
-        }
-    }
-}
+mod vector2;
+use vector2::Vector2;
 
 
 #[derive(Debug, Copy, Clone, PartialEq)]
@@ -128,12 +110,12 @@ fn process_column_input(letter: char) -> Option<u8> {
 }
 
 
-fn process_input(input: &String) -> Option<Vec2<u8>> {
+fn process_input(input: &String) -> Option<Vector2<u8>> {
     let cleaned = input.trim().to_uppercase();
     if cleaned.len() == 2 {
         let column_in: char = cleaned.chars().nth(0).unwrap();
         let row_in: char = cleaned.chars().nth(1).unwrap();
-        let mut out_coords = Vec2{x: 0u8, y: 0u8};
+        let mut out_coords = Vector2 {x: 0u8, y: 0u8};
 
         match process_column_input(column_in) {
             Some(x) => out_coords.x = x,
@@ -152,7 +134,7 @@ fn process_input(input: &String) -> Option<Vec2<u8>> {
 
 
 // In this first iteration, player is always noughts
-fn player_turn(board: &[[CellValue; 3]; 3]) -> Vec2<u8> {
+fn player_turn(board: &[[CellValue; 3]; 3]) -> Vector2<u8> {
     println!("Your turn.");
 
     return loop {
@@ -174,12 +156,12 @@ fn player_turn(board: &[[CellValue; 3]; 3]) -> Vec2<u8> {
 
 
 // In this first iteration, player is always crosses
-fn ai_turn(board: &[[CellValue; 3]; 3], _token_type: CellValue) -> Vec2<u8> {
-    let mut valid_moves: Vec<Vec2<u8>> = Vec::new();
+fn ai_turn(board: &[[CellValue; 3]; 3], _token_type: CellValue) -> Vector2<u8> {
+    let mut valid_moves: Vec<Vector2<u8>> = Vec::new();
     for u in 0..3 {
         for v in 0..3 {
             match board[u][v] {
-                CellValue::Empty => valid_moves.push(Vec2{x: u as u8, y: v as u8}),
+                CellValue::Empty => valid_moves.push(Vector2 {x: u as u8, y: v as u8}),
                 _ => (),
             }
         }
@@ -206,12 +188,12 @@ fn ai_token(player_token: &CellValue) -> CellValue {
 
 // Returns true if there is a line of the specified CellValue
 // type between the specified indices.
-fn is_line(board: &[[CellValue; 3]; 3], start: Vec2<u8>, end: Vec2<u8>) -> bool {
-    let start_i = Vec2{x: start.x as usize, y: start.y as usize};
-    let end_i = Vec2{x: end.x as usize, y: end.y as usize};
+fn is_line(board: &[[CellValue; 3]; 3], start: Vector2<u8>, end: Vector2<u8>) -> bool {
+    let start_i = Vector2 {x: start.x as usize, y: start.y as usize};
+    let end_i = Vector2 {x: end.x as usize, y: end.y as usize};
     let mid_point_coords = {
         let sum = start_i + end_i;
-        Vec2{x: sum.x / 2, y: sum.y / 2}
+        Vector2 {x: sum.x / 2, y: sum.y / 2}
     };
 
     let start_value = board[start_i.x][start_i.y];
@@ -225,22 +207,22 @@ fn is_line(board: &[[CellValue; 3]; 3], start: Vec2<u8>, end: Vec2<u8>) -> bool 
 
 fn winner(board: &[[CellValue; 3]; 3]) -> CellValue {
     for x in 0..3u8 {
-        if board[x as usize][0] != CellValue::Empty  &&  is_line(&board, Vec2{x: x, y: 0}, Vec2{x: x, y: 2}) {
+        if board[x as usize][0] != CellValue::Empty  &&  is_line(&board, Vector2 {x: x, y: 0}, Vector2 {x: x, y: 2}) {
             return board[x as usize][0];
         }
     }
 
     for y in 0..3u8 {
-        if board[0][y as usize] != CellValue::Empty  && is_line(&board, Vec2{x: 0, y: y}, Vec2{x: 2, y: y}) {
+        if board[0][y as usize] != CellValue::Empty  && is_line(&board, Vector2 {x: 0, y: y}, Vector2 {x: 2, y: y}) {
             return board[0][y as usize];
         }
     }
 
-    if is_line(&board, Vec2{x: 0, y: 0}, Vec2{x: 2, y: 2}) {
+    if is_line(&board, Vector2 {x: 0, y: 0}, Vector2 {x: 2, y: 2}) {
         return board[0][0];
     }
 
-    if is_line(&board, Vec2{x: 2, y: 0}, Vec2{x: 0, y: 2}) {
+    if is_line(&board, Vector2 {x: 2, y: 0}, Vector2 {x: 0, y: 2}) {
         return board[2][0];
     }
 
