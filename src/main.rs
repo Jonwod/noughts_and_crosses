@@ -98,15 +98,6 @@ fn ai_turn(board: &[[CellValue; 3]; 3], _token_type: CellValue) -> Vector2<u8> {
 }
 
 
-
-fn ai_token(player_token: &CellValue) -> CellValue {
-    match player_token {
-        CellValue::Cross => CellValue::Nought,
-        _ => CellValue::Cross,
-    }
-}
-
-
 // Returns true if there is a line of the specified CellValue
 // type between the specified indices.
 fn is_line(board: &[[CellValue; 3]; 3], start: Vector2<u8>, end: Vector2<u8>) -> bool {
@@ -186,8 +177,8 @@ fn main() {
 
 
     let victor = loop {
-        let ai_move = ai_turn(&board_state, ai_token(&player_token));
-        board_state[ai_move.x as usize][ai_move.y as usize] = ai_token(&player_token);
+        let ai_move = ai_turn(&board_state, player_token.opposite());
+        board_state[ai_move.x as usize][ai_move.y as usize] = player_token.opposite();
         print_board(&board_state);
         // TODO: Remove duplication
         let vic = winner(&board_state);

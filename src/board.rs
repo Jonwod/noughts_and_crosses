@@ -26,6 +26,16 @@ impl CellValue {
             CellValue::Cross => String::from("Crosses"),
         }
     }
+
+
+    // Returns the other non-empty value or empty for input of empty.
+    pub fn opposite(&self) -> CellValue {
+        match self {
+            CellValue::Cross => CellValue::Nought,
+            CellValue::Nought => CellValue::Cross,
+            CellValue::Empty => CellValue::Empty,
+        }
+    }
 }
 
 
